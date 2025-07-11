@@ -1,0 +1,142 @@
+-- Eliminar si ya existen
+DROP TABLE IF EXISTS returns;
+DROP TABLE IF EXISTS discounts;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS distributors;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+
+-- Tabla de categorías
+CREATE TABLE categories (
+    category_id INTEGER PRIMARY KEY,
+    category_name TEXT NOT NULL
+);
+
+INSERT INTO categories VALUES
+(1, 'Suplementos Nutricionales'),
+(2, 'Productos para Control de Peso'),
+(3, 'Cuidado de la Piel'),
+(4, 'Energía y Fitness'),
+(5, 'Bienestar Digestivo');
+
+-- Tabla de productos
+CREATE TABLE products (
+    product_id INTEGER PRIMARY KEY,
+    product_name TEXT,
+    category_id INTEGER,
+    price REAL,
+    stock INTEGER,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+);
+
+INSERT INTO products VALUES
+(1, 'Fórmula 1 Batido Nutricional Vainilla', 2, 37.50, 100),
+(2, 'Fórmula 1 Batido Nutricional Chocolate', 2, 37.50, 80),
+(3, 'Multivitamínico Complejo', 1, 25.00, 200),
+(4, 'Bebida Energética Liftoff', 4, 12.00, 150),
+(5, 'Fibras y Hierbas', 5, 20.00, 120),
+(6, 'Crema Limpiadora Facial', 3, 18.00, 60),
+(7, 'Concentrado de Sábila Mango', 5, 22.00, NULL),
+(8, 'Batido Express de Almuerzo', 2, 40.00, 0); -- Sin stock disponible
+
+-- Tabla de clientes
+CREATE TABLE customers (
+    customer_id INTEGER PRIMARY KEY,
+    name TEXT,
+    email TEXT,
+    country TEXT,
+    is_distributor BOOLEAN
+);
+
+INSERT INTO customers VALUES
+(1, 'Laura Ríos', 'laura.rios@email.com', 'Colombia', 1),
+(2, 'Carlos Vélez', 'carlos.velez@email.com', 'México', 1),
+(3, 'Paula Torres', NULL, 'Perú', 0),
+(4, 'Andrés Mendoza', 'andres.mendoza@email.com', 'Chile', 1),
+(5, 'Sofía Luna', 'sofia.luna@email.com', 'Argentina', 0),
+(6, 'Daniel Rodríguez', NULL, NULL, 0);
+
+-- Tabla de distribuidores (multinivel)
+CREATE TABLE distributors (
+    distributor_id INTEGER PRIMARY KEY,
+    customer_id INTEGER,
+    upline_id INTEGER,
+    level INTEGER,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+INSERT INTO distributors VALUES
+(1, 1, NULL, 1), -- Nivel superior
+(2, 2, 1, 2),
+(3, 4, 2, 3),
+(4, 6, NULL, 1); -- Distribuidor directo sin red
+
+-- Tabla de órdenes
+CREATE TABLE orders (
+    order_id INTEGER PRIMARY KEY,
+    customer_id INTEGER,
+    order_date TEXT,
+    total_amount REAL,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+INSERT INTO orders VALUES
+(1001, 1, '2024-06-01', 97.00),
+(1002, 2, '2024-06-01', 112.50),
+(1003, 3, '2024-06-03', 30.00),
+(1004, 5, '2024-06-04', 25.00),
+(1005, NULL, '2024-06-05', 60.00), -- Orden sin cliente (error de sistema)
+(1006, 6, '2024-06-06', NULL);     -- Orden con monto aún no registrado
+
+-- Tabla de ítems por orden
+CREATE TABLE order_items (
+    item_id INTEGER PRIMARY KEY,
+    order_id INTEGER,
+    product_id INTEGER,
+    quantity INTEGER,
+    price_per_unit REAL,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO order_items VALUES
+(1, 1001, 1, 2, 37.50),
+(2, 1001, 4, 1, 12.00),
+(3, 1002, 2, 2, 37.50),
+(4, 1002, 3, 1, 25.00),
+(5, 1003, 5, 1, 20.00),
+(6, 1004, 6, 1, 25.00),
+(7, 1005, 8, 1, 40.00), -- Vendido sin stock
+(8, 1006, 3, 2, NULL); -- Aún sin precio ingresado
+
+-- Tabla de descuentos
+CREATE TABLE discounts (
+    discount_id INTEGER PRIMARY KEY,
+    product_id INTEGER,
+    min_quantity INTEGER,
+    discount_percent REAL,
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO discounts VALUES
+(1, 1, 2, 10.0),
+(2, 2, 2, 15.0),
+(3, 4, 10, 20.0);
+
+-- Tabla de devoluciones
+CREATE TABLE returns (
+    return_id INTEGER PRIMARY KEY,
+    order_id INTEGER,
+    product_id INTEGER,
+    return_date TEXT,
+    reason TEXT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO returns VALUES
+(1, 1002, 3, '2024-06-05', 'Daño en el empaque'),
+(2, 1003, 5, '2024-06-06', NULL),
+(3, 1001, 3, '2024-06-07', 'Producto vencido');
